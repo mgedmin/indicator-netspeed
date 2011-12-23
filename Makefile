@@ -4,5 +4,5 @@ CFLAGS=-Wall $(shell pkg-config --cflags --libs gtk+-3.0 appindicator-0.1 libgto
 all: indicator-netspeed
 
 indicator-netspeed: indicator-netspeed.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $< $(CFLAGS) -o $@
 
