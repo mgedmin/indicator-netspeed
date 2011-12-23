@@ -3,7 +3,7 @@
 This is an Ubuntu appindicator that displays the current network traffic.
 
 Build dependencies:
-apt-get install libgtop2-dev libgtk-3-dev libappindicator-dev
+apt-get install libgtop2-dev libgtk-3-dev libappindicator3-dev
 
 Compile with:
 gcc -Wall `pkg-config --cflags --libs gtk+-3.0 appindicator-0.1 libgtop-2.0` -o indicator-netspeed ./indicator-netspeed.c
@@ -118,9 +118,6 @@ int main (int argc, char **argv)
 
     net_up_item = gtk_image_menu_item_new_with_label("");
     gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), net_up_item);
-     
-    GtkWidget *sep = gtk_separator_menu_item_new();
-    gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), sep);
 
     gtk_widget_show_all(indicator_menu);
 
@@ -132,7 +129,7 @@ int main (int argc, char **argv)
     update();
     
     /* update period in milliseconds */
-    g_timeout_add(1000*period, (GtkFunction) update, NULL);
+    g_timeout_add(1000*period, update, NULL);
 
     gtk_main ();
 
