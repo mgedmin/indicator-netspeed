@@ -119,6 +119,13 @@ int main (int argc, char **argv)
     net_up_item = gtk_image_menu_item_new_with_label("");
     gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), net_up_item);
 
+    GtkWidget *sep = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), sep);
+
+    quit_item = gtk_menu_item_new_with_label("Quit");
+    gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), quit_item);
+    g_signal_connect(quit_item, "activate", G_CALLBACK (gtk_main_quit), NULL);
+
     gtk_widget_show_all(indicator_menu);
 
     indicator = app_indicator_new ("netspeed", "", APP_INDICATOR_CATEGORY_SYSTEM_SERVICES);
