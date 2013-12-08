@@ -1,8 +1,7 @@
 Network speed indicator for Unity
 =================================
 
-![](https://github.com/mgedmin/indicator-netspeed/blob/master/screenshot.png)
-
+![](https://raw.github.com/mgedmin/indicator-netspeed/master/screenshot.png)
 
 Usage
 -----
