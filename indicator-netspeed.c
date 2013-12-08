@@ -63,6 +63,10 @@ void get_net(int traffic[2])
     
     for(i = 0; i < netlist.number; i++)
     {
+        if (strcmp("lo", interfaces[i]) == 0)
+        {
+            continue;
+        }
         glibtop_get_netload(&netload, interfaces[i]);
         bytes_in += netload.bytes_in;
         bytes_out += netload.bytes_out;
