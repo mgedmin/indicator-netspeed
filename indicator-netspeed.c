@@ -19,6 +19,8 @@ License: this software is in the public domain.
 #include <glibtop.h>
 #include <glibtop/netload.h>
 #include <glibtop/netlist.h>
+#include <pango/pango.h>
+#include <stdbool.h>
 
 /* update period in seconds */
 int period = 1;
@@ -30,21 +32,40 @@ GtkWidget *net_down_item;
 GtkWidget *net_up_item;
 GtkWidget *quit_item;
 
-gchar* format_net_label(int data)
+gchar* format_net_label(int data, bool padding)
 {
     gchar *string;
-    if(data < 1000)
+    if(data < 1024)
     {
         string = g_strdup_printf("%d B/s", data);
     }
-    else if(data < 1000000)
+    else if(data < 1048576)
     {
-        string = g_strdup_printf("%.1f KiB/s", data/1000.0);
+        string = g_strdup_printf("%.1f KiB/s", data/1024.0);
+        //string = g_strdup_printf("%+4s KiB/s", string);
     }
     else
     {
-        string = g_strdup_printf("%.2f MiB/s", data/1000000.0);
+        string = g_strdup_printf("%.2f MiB/s", data/1048576.0);
     }
+
+    if(padding)
+    {
+        //render string and get it's pixel width
+        int width = 0;
+        int maxWidth = 80;   //max width for label in pixels
+        int spaceWidth = 4;  //width of one space char in pixels
+
+        PangoContext* context = gtk_widget_get_pango_context(indicator_menu);
+        PangoLayout* layout = pango_layout_new(context);
+        pango_layout_set_text(layout, string, strlen(string));
+        pango_layout_get_pixel_size(layout, &width, NULL);
+        //printf("width = %d\n", width);
+
+        //fill up with spaces
+        string = g_strdup_printf("%*s%s", (int)((maxWidth-width)/spaceWidth), " ", string);
+    }
+
     return string;
 }
 
@@ -58,9 +79,9 @@ void get_net(int traffic[2])
     int bytes_in = 0;
     int bytes_out = 0;
     int i = 0;
-    
+
     gchar **interfaces = glibtop_get_netlist(&netlist);
-    
+
     for(i = 0; i < netlist.number; i++)
     {
         if (strcmp("lo", interfaces[i]) == 0)
@@ -71,8 +92,8 @@ void get_net(int traffic[2])
         bytes_in += netload.bytes_in;
         bytes_out += netload.bytes_out;
     }
-    g_strfreev(interfaces);    
-    
+    g_strfreev(interfaces);
+
     if(first_run)
     {
         bytes_in_old = bytes_in;
@@ -82,7 +103,7 @@ void get_net(int traffic[2])
 
     traffic[0] = (bytes_in - bytes_in_old) / period;
     traffic[1] = (bytes_out - bytes_out_old) / period;
-    
+
     bytes_in_old = bytes_in;
     bytes_out_old = bytes_out;
 }
@@ -92,22 +113,24 @@ gboolean update()
     int net_traffic[2] = {0, 0};
     get_net(net_traffic);
     int net_down = net_traffic[0];
-    int net_up = net_traffic[1];  
+    int net_up = net_traffic[1];
     int net_total = net_down + net_up;
-    
-    gchar *indicator_label = format_net_label(net_total);
+
+    gchar *indicator_label = format_net_label(net_total, true);
     gchar *label_guide = "Net: 10000.00 MiB/s"; /* I wish... */
     app_indicator_set_label(indicator, indicator_label, label_guide);
     g_free(indicator_label);
 
-    gchar *net_down_label = format_net_label(net_down);
+    app_indicator_set_ordering_index(indicator, 0);
+
+    gchar *net_down_label = format_net_label(net_down, false);
     gtk_menu_item_set_label(GTK_MENU_ITEM(net_down_item), net_down_label);
     g_free(net_down_label);
 
-    gchar *net_up_label = format_net_label(net_up);
+    gchar *net_up_label = format_net_label(net_up, false);
     gtk_menu_item_set_label(GTK_MENU_ITEM(net_up_item), net_up_label);
     g_free(net_up_label);
-    
+
     return TRUE;
 }
 
@@ -116,7 +139,7 @@ int main (int argc, char **argv)
     gtk_init (&argc, &argv);
 
     indicator_menu = gtk_menu_new();
-       
+
     net_down_item = gtk_image_menu_item_new_with_label("");
     GtkWidget *net_down_icon = gtk_image_new_from_icon_name("network-receive", GTK_ICON_SIZE_MENU);
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(net_down_item), net_down_icon);
@@ -142,9 +165,9 @@ int main (int argc, char **argv)
     app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_label(indicator, "netspeed", "netspeed");
     app_indicator_set_menu(indicator, GTK_MENU (indicator_menu));
- 
+
     update();
-    
+
     /* update period in milliseconds */
     g_timeout_add(1000*period, update, NULL);
 
