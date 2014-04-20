@@ -131,6 +131,24 @@ gboolean update()
     gtk_menu_item_set_label(GTK_MENU_ITEM(net_up_item), net_up_label);
     g_free(net_up_label);
 
+
+    if (net_down && net_up)
+    {
+        app_indicator_set_icon(indicator, "network-transmit-receive");
+    }
+    else if (net_down)
+    {
+        app_indicator_set_icon(indicator, "network-receive");
+    }
+    else if (net_up)
+    {
+        app_indicator_set_icon(indicator, "network-transmit");
+    }
+    else
+    { // See https://bugs.launchpad.net/ubuntu/+source/humanity-icon-theme/+bug/611336
+        app_indicator_set_icon(indicator, "network-idle");
+    }
+
     return TRUE;
 }
 
@@ -161,7 +179,7 @@ int main (int argc, char **argv)
 
     gtk_widget_show_all(indicator_menu);
 
-    indicator = app_indicator_new ("netspeed", "network-transmit-receive", APP_INDICATOR_CATEGORY_SYSTEM_SERVICES);
+    indicator = app_indicator_new ("netspeed", "network-idle", APP_INDICATOR_CATEGORY_SYSTEM_SERVICES);
     app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_label(indicator, "netspeed", "netspeed");
     app_indicator_set_menu(indicator, GTK_MENU (indicator_menu));
