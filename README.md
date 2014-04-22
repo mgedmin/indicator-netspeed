@@ -25,9 +25,10 @@ Known Bugs
 Credits
 -------
 
-Written by Marius Gedminas <marius@gedmin.as>
+Originally written by Marius Gedminas <marius@gedmin.as>
 
 Contributors:
 
-- Tobias Brandt <tob.brandt@gmail.com> 
+- Tobias Brandt <tob.brandt@gmail.com>
+- Stefan Bethge <stefan at lanpartei.de>
 

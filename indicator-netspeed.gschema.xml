@@ -1,0 +1,11 @@
+<schemalist>
+  <schema id="apps.indicators.netspeed" path="/apps/indicators/netspeed/" gettext-domain="netspeed">
+    <key name="if-name" type="s">
+      <default l10n="messages">"wlan0"</default>
+      <summary>Selected Network Interface</summary>
+      <description>
+        The network interface that was selected last.
+      </description>
+    </key>
+  </schema>
+</schemalist>

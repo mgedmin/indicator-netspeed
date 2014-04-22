@@ -3,7 +3,7 @@
 This is an Ubuntu appindicator that displays the current network traffic.
 
 Build dependencies:
-apt-get install libgtop2-dev libgtk-3-dev libappindicator3-dev
+apt-get install libgtop2-dev libgtk-3-dev libappindicator3-dev libglib2.0-dev
 
 Compile with:
 gcc -Wall `pkg-config --cflags --libs gtk+-3.0 appindicator-0.1 libgtop-2.0` -o indicator-netspeed ./indicator-netspeed.c
@@ -20,14 +20,22 @@ License: this software is in the public domain.
 #include <glibtop/netload.h>
 #include <glibtop/netlist.h>
 #include <pango/pango.h>
+#include <gio/gio.h>
 #include <stdbool.h>
 
 /* update period in seconds */
 int period = 1;
+gboolean first_run = TRUE;
+
+GSettings *settings;
 
 AppIndicator *indicator;
 GtkWidget *indicator_menu;
+GtkWidget *interfaces_menu;
 
+gchar* selected_if_name = NULL;
+
+GtkWidget *if_chosen;
 GtkWidget *net_down_item;
 GtkWidget *net_up_item;
 GtkWidget *quit_item;
@@ -73,7 +81,6 @@ void get_net(int traffic[2])
 {
     static int bytes_in_old = 0;
     static int bytes_out_old = 0;
-    static gboolean first_run = TRUE;
     glibtop_netload netload;
     glibtop_netlist netlist;
     int bytes_in = 0;
@@ -88,9 +95,12 @@ void get_net(int traffic[2])
         {
             continue;
         }
-        glibtop_get_netload(&netload, interfaces[i]);
-        bytes_in += netload.bytes_in;
-        bytes_out += netload.bytes_out;
+
+        if(strcmp("all", selected_if_name) == 0 || strcmp(selected_if_name, interfaces[i]) == 0) {
+            glibtop_get_netload(&netload, interfaces[i]);
+            bytes_in += netload.bytes_in;
+            bytes_out += netload.bytes_out;
+        }
     }
     g_strfreev(interfaces);
 
@@ -108,8 +118,48 @@ void get_net(int traffic[2])
     bytes_out_old = bytes_out;
 }
 
-gboolean update()
-{
+void if_signal_select(GtkMenuItem *menu_item, gpointer user_data) {
+    //set currently selected interface from user selection
+    /*if (selected_if_name != NULL){
+        g_free(selected_if_name);
+        selected_if_name == NULL;
+    }*/
+    selected_if_name = g_strdup(gtk_menu_item_get_label(menu_item));
+    gtk_menu_item_set_label(if_chosen, selected_if_name);
+    g_settings_set_value (settings, "if-name", g_variant_new_string(selected_if_name));
+
+    first_run = TRUE;
+    update();
+}
+
+void add_netifs() {
+    //populate list of interfaces
+    //TODO: make this refresh when interfaces change
+    glibtop_netlist netlist;
+    gchar **interfaces = glibtop_get_netlist(&netlist);
+    GtkWidget *if_item;
+
+    for(int i = 0; i < netlist.number; i++) {
+        if (strcmp("lo", interfaces[i]) == 0)
+            continue;
+
+        if_item = gtk_menu_item_new_with_label(interfaces[i]);
+        gtk_menu_shell_append(GTK_MENU_SHELL(interfaces_menu), if_item);
+        g_signal_connect (G_OBJECT(if_item), "activate", G_CALLBACK(if_signal_select), NULL);
+    }
+
+    if_item = gtk_menu_item_new_with_label("all");  //can name and id be different?
+    gtk_menu_shell_append(GTK_MENU_SHELL(interfaces_menu), if_item);
+    g_signal_connect (G_OBJECT(if_item), "activate", G_CALLBACK(if_signal_select), NULL);
+
+    //set previously selected value
+    gtk_menu_item_set_label(GTK_MENU_ITEM(if_chosen), selected_if_name);
+    g_strfreev(interfaces);
+}
+
+gboolean update() {
+    //get sum of up and down net traffic and separate values
+    //and refresh labels of current interface
     int net_traffic[2] = {0, 0};
     get_net(net_traffic);
     int net_down = net_traffic[0];
@@ -117,11 +167,9 @@ gboolean update()
     int net_total = net_down + net_up;
 
     gchar *indicator_label = format_net_label(net_total, true);
-    gchar *label_guide = "Net: 10000.00 MiB/s"; /* I wish... */
+    gchar *label_guide = "10000.00 MiB/s";   //maximum length label text, doesn't really work atm
     app_indicator_set_label(indicator, indicator_label, label_guide);
     g_free(indicator_label);
-
-    app_indicator_set_ordering_index(indicator, 0);
 
     gchar *net_down_label = format_net_label(net_down, false);
     gtk_menu_item_set_label(GTK_MENU_ITEM(net_down_item), net_down_label);
@@ -130,7 +178,6 @@ gboolean update()
     gchar *net_up_label = format_net_label(net_up, false);
     gtk_menu_item_set_label(GTK_MENU_ITEM(net_up_item), net_up_label);
     g_free(net_up_label);
-
 
     if (net_down && net_up)
     {
@@ -144,8 +191,7 @@ gboolean update()
     {
         app_indicator_set_icon(indicator, "network-transmit");
     }
-    else
-    { // See https://bugs.launchpad.net/ubuntu/+source/humanity-icon-theme/+bug/611336
+    else {
         app_indicator_set_icon(indicator, "network-idle");
     }
 
@@ -156,8 +202,25 @@ int main (int argc, char **argv)
 {
     gtk_init (&argc, &argv);
 
+    settings = g_settings_new("apps.indicators.netspeed");
+    selected_if_name = g_variant_get_string (g_settings_get_value(settings, "if-name"), NULL);
+
     indicator_menu = gtk_menu_new();
 
+    //add interfaces menu
+    interfaces_menu = gtk_menu_new();
+
+    //add interface names
+    if_chosen = gtk_menu_item_new_with_label("");
+    gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), if_chosen);
+    gtk_menu_item_set_submenu (if_chosen, interfaces_menu);
+    add_netifs();
+
+    //separator
+    GtkWidget *sep = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), sep);
+
+    //add menu entries for up and down speed
     net_down_item = gtk_image_menu_item_new_with_label("");
     GtkWidget *net_down_icon = gtk_image_new_from_icon_name("network-receive", GTK_ICON_SIZE_MENU);
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(net_down_item), net_down_icon);
@@ -170,15 +233,18 @@ int main (int argc, char **argv)
     gtk_image_menu_item_set_always_show_image(GTK_IMAGE_MENU_ITEM(net_up_item), TRUE);
     gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), net_up_item);
 
-    GtkWidget *sep = gtk_separator_menu_item_new();
+    //separator
+    sep = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), sep);
 
+    //quit item
     quit_item = gtk_menu_item_new_with_label("Quit");
     gtk_menu_shell_append(GTK_MENU_SHELL(indicator_menu), quit_item);
     g_signal_connect(quit_item, "activate", G_CALLBACK (gtk_main_quit), NULL);
 
     gtk_widget_show_all(indicator_menu);
 
+    //create app indicator
     indicator = app_indicator_new ("netspeed", "network-idle", APP_INDICATOR_CATEGORY_SYSTEM_SERVICES);
     app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_label(indicator, "netspeed", "netspeed");
