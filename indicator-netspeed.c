@@ -43,14 +43,13 @@ GtkWidget *quit_item;
 gchar* format_net_label(int data, bool padding)
 {
     gchar *string;
-    if(data < 1024)
+    /*if(data < 1024)
     {
         string = g_strdup_printf("%d B/s", data);
     }
-    else if(data < 1048576)
+    else*/ if(data < 1048576)
     {
         string = g_strdup_printf("%.1f KiB/s", data/1024.0);
-        //string = g_strdup_printf("%+4s KiB/s", string);
     }
     else
     {
@@ -61,14 +60,18 @@ gchar* format_net_label(int data, bool padding)
     {
         //render string and get it's pixel width
         int width = 0;
-        int maxWidth = 80;   //max width for label in pixels
-        int spaceWidth = 4;  //width of one space char in pixels
+        static int maxWidth = 12;   //max width for label in pixels
+
+        //TODO: should be determined from current panel font type and size
+        int spaceWidth = 4;  //width of one space char in pixels,
 
         PangoContext* context = gtk_widget_get_pango_context(indicator_menu);
         PangoLayout* layout = pango_layout_new(context);
         pango_layout_set_text(layout, string, strlen(string));
         pango_layout_get_pixel_size(layout, &width, NULL);
-        //printf("width = %d\n", width);
+
+        //push max size up as needed
+        if (width > maxWidth) maxWidth = width + spaceWidth;
 
         //fill up with spaces
         string = g_strdup_printf("%*s%s", (int)((maxWidth-width)/spaceWidth), " ", string);
