@@ -7,5 +7,12 @@
         The network interface that was selected last.
       </description>
     </key>
+    <key name="ordering-index" type="i">
+      <default>-10</default>
+      <summary>Ordering Index</summary>
+      <description>
+        Specifiy ordering index to position indicator within other app indicators.
+      </description>
+    </key>
   </schema>
 </schemalist>

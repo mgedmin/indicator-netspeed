@@ -2,12 +2,6 @@
 
 This is an Ubuntu appindicator that displays the current network traffic.
 
-Build dependencies:
-apt-get install libgtop2-dev libgtk-3-dev libappindicator3-dev libglib2.0-dev
-
-Compile with:
-gcc -Wall `pkg-config --cflags --libs gtk+-3.0 appindicator-0.1 libgtop-2.0` -o indicator-netspeed ./indicator-netspeed.c
-
 Based on indicator-netspeed.c from https://gist.github.com/982939
 
 License: this software is in the public domain.
@@ -43,11 +37,11 @@ GtkWidget *quit_item;
 gchar* format_net_label(int data, bool padding)
 {
     gchar *string;
-    /*if(data < 1024)
+    /*if(data < 1000)
     {
         string = g_strdup_printf("%d B/s", data);
     }
-    else*/ if(data < 1048576)
+    else*/ if(data < 1000000)  //should be < 1 MiB and not 1 MB, but this keeps width smaller
     {
         string = g_strdup_printf("%.1f KiB/s", data/1024.0);
     }
@@ -55,10 +49,11 @@ gchar* format_net_label(int data, bool padding)
     {
         string = g_strdup_printf("%.2f MiB/s", data/1048576.0);
     }
+    //will someone have 1 gb/s ? maybe...
 
     if(padding)
     {
-        //render string and get it's pixel width
+        //render string and get its pixel width
         int width = 0;
         static int maxWidth = 12;   //max width for label in pixels
 
@@ -252,6 +247,11 @@ int main (int argc, char **argv)
     app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_label(indicator, "netspeed", "netspeed");
     app_indicator_set_menu(indicator, GTK_MENU (indicator_menu));
+
+    //set indicator position. default: all the way left
+    //TODO: make this optional so placement can be automatic
+    guint32 ordering_index = g_variant_get_int32(g_settings_get_value(settings, "ordering-index"));
+    app_indicator_set_ordering_index(indicator, ordering_index);
 
     update();
 
