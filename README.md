@@ -20,7 +20,7 @@ Known Bugs
 ----
 
 * It's not packaged.
-* Configuration options.only accessible through dconf-editor
+* Configuration options only accessible through dconf-editor
 
 
 Credits
@@ -31,5 +31,5 @@ Originally written by Marius Gedminas <marius@gedmin.as>
 Contributors:
 
 - Tobias Brandt <tob.brandt@gmail.com>
-- Stefan Bethge <stefan at lanpartei.de>
+- Stefan Bethge (stefan at lanpartei.de)
 
