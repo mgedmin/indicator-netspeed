@@ -64,6 +64,8 @@ gchar* format_net_label(int data, bool padding)
         PangoLayout* layout = pango_layout_new(context);
         pango_layout_set_text(layout, string, strlen(string));
         pango_layout_get_pixel_size(layout, &width, NULL);
+        // frees the layout object, do not use after this point
+        g_object_unref(layout);
 
         //push max size up as needed
         if (width > maxWidth) maxWidth = width + spaceWidth;
