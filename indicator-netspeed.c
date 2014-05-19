@@ -68,8 +68,11 @@ gchar* format_net_label(int data, bool padding)
         //push max size up as needed
         if (width > maxWidth) maxWidth = width + spaceWidth;
 
+        gchar *old_string = string;
+
         //fill up with spaces
         string = g_strdup_printf("%*s%s", (int)((maxWidth-width)/spaceWidth), " ", string);
+        g_free(old_string);
     }
 
     return string;
