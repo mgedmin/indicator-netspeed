@@ -17,6 +17,10 @@ License: this software is in the public domain.
 #include <gio/gio.h>
 #include <stdbool.h>
 
+#define TRACE(...) if (trace) { printf( __VA_ARGS__); fflush(stdout); } else {}
+
+bool trace = false;
+
 /* update period in seconds */
 int period = 1;
 gboolean first_run = TRUE;
@@ -82,6 +86,9 @@ gchar* format_net_label(int data, bool padding)
 
 void get_net(int traffic[2])
 {
+    TRACE("\n")
+    TRACE("getting net traffic...\n")
+    TRACE("selected interface is %s\n", selected_if_name)
     static int bytes_in_old = 0;
     static int bytes_out_old = 0;
     glibtop_netload netload;
@@ -94,15 +101,23 @@ void get_net(int traffic[2])
 
     for(i = 0; i < netlist.number; i++)
     {
+        TRACE("\n")
+        TRACE("processing interface %s\n", interfaces[i])
         if (strcmp("lo", interfaces[i]) == 0)
         {
+            TRACE("skipping loopback interface\n")
             continue;
         }
 
         if(strcmp("all", selected_if_name) == 0 || strcmp(selected_if_name, interfaces[i]) == 0) {
             glibtop_get_netload(&netload, interfaces[i]);
+            TRACE("in: %ld, out: %ld\n", netload.bytes_in, netload.bytes_out)
             bytes_in += netload.bytes_in;
             bytes_out += netload.bytes_out;
+        }
+        else
+        {
+            TRACE("skipping\n")
         }
     }
     g_strfreev(interfaces);
@@ -128,6 +143,7 @@ void if_signal_select(GtkMenuItem *menu_item, gpointer user_data) {
         selected_if_name == NULL;
     }*/
     selected_if_name = g_strdup(gtk_menu_item_get_label(menu_item));
+    TRACE("Selected interface %s\n", selected_if_name);
     gtk_menu_item_set_label(if_chosen, selected_if_name);
     g_settings_set_value (settings, "if-name", g_variant_new_string(selected_if_name));
 
@@ -136,6 +152,7 @@ void if_signal_select(GtkMenuItem *menu_item, gpointer user_data) {
 }
 
 void add_netifs() {
+    TRACE("populating list of interfaces\n")
     //populate list of interfaces
     //TODO: make this refresh when interfaces change
     glibtop_netlist netlist;
@@ -144,7 +161,12 @@ void add_netifs() {
 
     for(int i = 0; i < netlist.number; i++) {
         if (strcmp("lo", interfaces[i]) == 0)
+        {
+            TRACE("skipping loopback interface\n")
             continue;
+        }
+
+        TRACE("adding interface %s\n", interfaces[i]);
 
         if_item = gtk_menu_item_new_with_label(interfaces[i]);
         gtk_menu_shell_append(GTK_MENU_SHELL(interfaces_menu), if_item);
@@ -203,6 +225,15 @@ gboolean update() {
 
 int main (int argc, char **argv)
 {
+    if (argc > 1 && strcmp("--trace", argv[1]) == 0)
+    {
+        trace = true;
+        argc--;
+        argv++;
+        printf("Tracing is on\n");
+        fflush(stdout);
+    }
+
     gtk_init (&argc, &argv);
 
     settings = g_settings_new("apps.indicators.netspeed");
