@@ -138,14 +138,16 @@ void get_net(int traffic[2])
 
 void if_signal_select(GtkMenuItem *menu_item, gpointer user_data) {
     //set currently selected interface from user selection
-    if (selected_if_name != NULL){
-        g_free(selected_if_name);
-        selected_if_name == NULL;
-    }
+    gchar *old_if_name = selected_if_name;
+    
+    // We're allocating a new string here, but we don't need to free the previous
+    // one because the call to gtk_menu_item_set_label below does that already. 
     selected_if_name = g_strdup(gtk_menu_item_get_label(menu_item));
     TRACE("Selected interface %s\n", selected_if_name);
+    // frees the previous selected_if_name
     gtk_menu_item_set_label(if_chosen, selected_if_name);
     g_settings_set_value (settings, "if-name", g_variant_new_string(selected_if_name));
+    
 
     first_run = TRUE;
     update();
