@@ -17,4 +17,4 @@ install:
 uninstall:
 	rm /usr/bin/indicator-netspeed
 	rm /usr/share/glib-2.0/schemas/indicator-netspeed.gschema.xml
-
+	glib-compile-schemas /usr/share/glib-2.0/schemas/
